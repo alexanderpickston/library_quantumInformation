@@ -1,1 +1,1 @@
-this is the README for quantuminformation containing quantuminformation.nb
+this is the README for quantumInformation
