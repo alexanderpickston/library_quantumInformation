@@ -1,3 +1,3 @@
 (* Wolfram Language Init File *)
 
-Get[ "quantumInformation`quantumInformation`"]
+Get[ "quantumInformationFunctins`quantumInformationFunctions`"]
