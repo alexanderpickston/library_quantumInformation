@@ -21,10 +21,12 @@ EigenSolve[matrix_] := Block[{eigenvalues, eigenvectors},
     Eigensystem[matrix];
   {eigenvalues, Normalize /@ eigenvectors}]
 
-GetProjectionAngles[proj_] := 
-  Chop@NMinimize[{Abs[(HWP[x].QWP[y].proj)[[2, 1]]], -\[Pi]/4 < 
-       x <= \[Pi]/4}, {x, y}][[2, {1, 2}, 2]];
-  Chop@FullSimplify@((%/\[Pi])*180)
+  GetProjectionAngles[
+    proj_] :=
+   {\[Theta] = 
+     Chop@NMinimize[{Abs[(HWP[x].QWP[y].proj)[[2, 1]]], -\[Pi]/4 <= 
+          x <= \[Pi]/4}, {x, y}][[2, {1, 2}, 2]],
+    Chop@FullSimplify@((\[Theta]/\[Pi])*180)}
 
 (*__BasisStates__*)
 
