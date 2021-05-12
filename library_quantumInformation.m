@@ -1,12 +1,13 @@
- 
 (* __Functions__ *)
 
-Fidelity[x_, y_] := Tr[(x^(1/2).y.x^(1/2))^(1/2)];
+Fidelity[dm_, idealdm_] := Tr[MatrixPower[MatrixPower[idealdm, 1/2].dm.MatrixPower[idealdm, 1/2], 1/2]]^2 // Chop;
+
 FidelityPure[x_, y_] := Sqrt[x\[ConjugateTranspose].y.x];
 Purity[\[Rho]_]:=Tr[\[Rho].\[Rho]];
 
 DensityMatrix:=#.#\[ConjugateTranspose]&
 Kron:=KroneckerProduct[##]&
+Kronk = Fold[KroneckerProduct];
 
 StateMeasurementPure[state_,operator_]:=ConjugateTranspose@state.operator.state
 StateMeasurement[rho_,operator_]:=Tr[operator.rho]
@@ -54,6 +55,7 @@ s0 = {{1, 0}, {0, 1}};
 sx = {{0, 1}, {1, 0}};
 sy = {{0, -I}, {I, 0}};
 sz = {{1, 0}, {0, -1}}; 
+Hada = 1/Sqrt[2] {{1, 1}, {1, -1}};
 
 GHZ[nQubit_]:=1/Sqrt[2] (Kron@@ConstantArray[h,nQubit]+Kron@@ConstantArray[v,nQubit])/;nQubit>=2
 
@@ -378,6 +380,20 @@ ColorData["BlueGreenYellow"] =
      RGBColor[{0.98386829, 0.90486726, 0.13689671}], 
      RGBColor[{0.99324789, 0.90615657, 0.1439362}]}, x]];
 Protect[ColorData]
+
+RGBColorConversion[{a_, b_, c_}] := RGBColor[a/256, b/256, c/256]
+rocketRGBvalues = {{37, 25, 56}, {81, 45, 86}, {128, 57, 104}, {169, 
+    59, 108}, {206, 73, 94}, {228, 119, 90}, {241, 199, 170}, {248, 
+    233, 220}};
+rocketColors = RGBColorConversion /@ rocketRGBvalues
+
+Unprotect[ColorData]
+  ColorData["AuroraColors"] = 
+    Blend[rocketColors, #*1] & ;
+Protect[ColorData]
+  
+DensityMatrixLabels[nQubits_] := Tuples[{"H", "V", "D", "A", "R", "L"}, nQubits];
+DensityMatrixPlotLabels[nQubits_] := Tuples[{"H", "V"}, nQubits];
 
 font = FontFamily -> "Times New Roman";
 fontSize = 18;
