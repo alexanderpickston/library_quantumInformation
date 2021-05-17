@@ -9,6 +9,9 @@ DensityMatrix:=#.#\[ConjugateTranspose]&
 Kron:=KroneckerProduct[##]&
 Kronk = Fold[KroneckerProduct];
 
+neighborhoodLC = Exp[(I*\[Pi])/4] {{1, 0}, {0, -I}}
+vertexLC = MatrixExp[(-I*\[Pi]/4)*(sx)]
+
 StateMeasurementPure[state_,operator_]:=ConjugateTranspose@state.operator.state
 StateMeasurement[rho_,operator_]:=Tr[operator.rho]
 
@@ -398,11 +401,11 @@ DensityMatrixPlotLabels[nQubits_] := Tuples[{"H", "V"}, nQubits];
 font = FontFamily -> "Times New Roman";
 fontSize = 18;
 
-DensityMatrixPlot[densitymatrx_] := 
+(*DensityMatrixPlot[densitymatrx_] := 
  Show[BarChart3D[Re[densitymatrx], ChartLayout -> "Grid", 
    ChartElementFunction -> 
     ChartElementDataFunction["GradientScaleCube", 
-     "ColorScheme" -> "BlueGreenYellow"], BarSpacing -> {0.2, .2}, 
+     "ColorScheme" -> "DeepSeaColors"], BarSpacing -> {0.2, .2}, 
    BaseStyle -> {FontFamily -> font, FontSize -> fontSize, Black}, 
    Method -> {"Canvas" -> None}, 
    ChartBaseStyle -> EdgeForm[{Thickness[.001], Opacity[1], Black}], 
@@ -412,7 +415,30 @@ DensityMatrixPlot[densitymatrx_] :=
    AxesStyle -> {Directive[Black, Opacity[1]], 
      Directive[Black, Opacity[1]], Directive[Black]}, 
    BoxRatios -> {1, 1, 1.5}, ImageSize -> Large, 
-   AspectRatio -> 1/GoldenRatio, ViewPoint -> {1.3, -2.4, 2.}]]
+   AspectRatio -> 1/GoldenRatio, ViewPoint -> {1.3, -2.4, 2.}]]*)
+
+DensityMatrixPlot[densitymatrx_] := Show[BarChart3D[Re[densitymatrx],
+   ChartLayout -> "Grid",
+   ChartElementFunction -> 
+    ChartElementDataFunction["GradientScaleCube", 
+     "ColorScheme" -> "DeepSeaColors"],
+   BarSpacing -> {.2, .2},
+   BaseStyle -> {FontFamily -> font, FontSize -> fontSize, Black},
+   Method -> {"Canvas" -> None},
+   ChartBaseStyle -> EdgeForm[{Thickness[.001], Opacity[1], Gray}],
+   Ticks -> {Automatic, Automatic, dmticks},
+   Boxed -> True, 
+   BoxStyle -> {Directive[Thickness[0.001], Opacity[1], Gray, Dashed]},
+   FaceGrids -> None,
+   Axes -> {True, True, True},
+   AxesStyle -> {Directive[Black, Opacity[0]], 
+     Directive[Black, Opacity[0]], Directive[Black]},
+   BoxRatios -> {1, 1, .6},
+   ImageSize -> Large,
+   ViewPoint -> {1.3, -2.4, 2.},
+   LabelStyle -> Directive[FontFamily -> "YuMincho", FontSize -> 12]
+   ]
+  ]
 
 DensityMatrixPlotFull[densitymatrx_] := 
  GraphicsGrid[{{BarChart3D[Re[densitymatrx]
@@ -460,3 +486,105 @@ DensityMatrixPlotFull[densitymatrx_] :=
      , AspectRatio -> 0.8
      , ViewPoint -> {1.3, -2.4, 2.}
      ]}}]
+     SwapParts[expr_, pos1_, pos2_] := 
+     ReplacePart[#, #, {pos1, pos2}, {pos2, pos1}] &[expr];
+   
+TraceSystem[dm_, sys_] := 
+ Block[{Qubits, TrkM, n, M, k, Permut, perm, b, c, p},
+  Qubits = Reverse[Sort[sys]];(* 
+  rearrange the list of qubits to be traced out *)
+  TrkM = dm;
+  
+  (* For all qubits to be traced out... *)
+  
+  For[q = 1, q <= Dimensions[Qubits][[1]], q++,
+   n = Log[2, (Dimensions[TrkM][[1]])]; (* 
+   dimensions of original system *)
+   M = TrkM;
+   k = Qubits[[q]];
+   
+   If[k == n,(* if tracing the last system *)
+    TrkM = {};
+    For[p = 1, p < 2^n + 1, p = p + 2,
+     TrkM = 
+      Append[TrkM, 
+       Take[M[[p, All]], {1, 2^n, 2}] + 
+        Take[M[[p + 1, All]], {2, 2^n, 2}]];(* Pick row p/
+     p+1 and take elements 1/2 through 2^n in steps of 2 - 
+     sum thoese and append to zero matrix - 
+     do for all rows *)
+      ],
+    
+    For[j = 0, j < (n - k), j++,(* if not - permute accordingly *)
+ 
+         b = {0};
+     For[i = 1, i < 2^n + 1, i++,
+      If[(Mod[(IntegerDigits[i - 1, 2, n][[n]] + 
+             IntegerDigits[i - 1, 2, n][[n - j - 1]]), 2]) == 1 && 
+        Count[b, i]  == 0, 
+       Permut = {i, (FromDigits[
+            SwapParts[(IntegerDigits[i - 1, 2, n]), {n}, {n - j - 
+               1}], 2] + 1)};
+       b = 
+        Append[b, (FromDigits[
+            SwapParts[(IntegerDigits[i - 1, 2, n]), {n}, {n - j - 
+               1}], 2] + 1)];
+       c = Range[2^n];
+       perm = 
+        SwapParts[
+         c, {i}, {(FromDigits[
+             SwapParts[(IntegerDigits[i - 1, 2, n]), {n}, {n - j - 
+                1}], 2] + 1)}];
+       
+       M = M[[perm, perm]];
+       
+        ]    
+      ];
+     (* and now trace out last system *)
+     TrkM = {};
+     For[p = 1, p < 2^n + 1, p = p + 2,
+      TrkM = 
+        Append[TrkM, 
+         Take[M[[p, All]], {1, 2^n, 2}] + 
+          Take[M[[p + 1, All]], {2, 2^n, 2}]];
+      ]
+        ]
+    ];
+   
+   ];
+  Clear[Qubits, n, M, k, Permut, perm, b, c];
+  TrkM
+  ];
+
+Coding[n_] :=
+ 
+ "|" <> # <> "\[RightAngleBracket]" & /@ 
+  Table[IntegerString[i - 1, 2, n], {i, 1, 2^n}];
+
+DensityMatrixPlot[densitymatrx_] := Show[BarChart3D[Re[densitymatrx],
+
+ChartLayout -> "Grid",
+ChartElementFunction -> 
+ChartElementDataFunction["GradientScaleCube", 
+ "ColorScheme" -> "AuroraColors"],
+BarSpacing -> {.2, .2},
+BaseStyle -> {FontFamily -> font, FontSize -> fontSize, Black},
+Method -> {"Canvas" -> None},
+ChartBaseStyle -> EdgeForm[{Thickness[.001], Opacity[1], Gray}],
+Ticks -> {Automatic, Automatic, dmticks},
+Boxed -> True, 
+BoxStyle -> {Directive[Thickness[0.001], Opacity[1], Gray, Dashed]},
+FaceGrids -> None,
+Axes -> {True, True, True},
+AxesStyle -> {Directive[Black, Opacity[0]], 
+ Directive[Black, Opacity[0]], Directive[Black]},
+BoxRatios -> {1, 1, .6},
+ImageSize -> Large,
+ViewPoint -> {1.3, -2.4, 2.},
+
+ChartLabels -> {{""},
+ Placed[labels, Axis, Rotate[#, -30*\[Pi]/180] &],
+ Placed[labels, Axis, Rotate[#, Pi/4] &]},
+LabelStyle -> Directive[FontFamily -> "YuMincho", FontSize -> 12]
+]
+]
